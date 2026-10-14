@@ -1,6 +1,6 @@
 # Leebs
 
-Mobile-first JAMB Biology invention-sprint MVP. Phase 2 adds a three-step Food Chains micro-lesson and a final Quick Check to the demo foundation. Product requirements remain in `docs/` and `AGENTS.md`.
+Mobile-first JAMB Biology invention-sprint MVP. Phase 3 adds reasoning, local guided coaching, a transfer question, reflection, and activity-level mastery feedback after an incorrect Food Chains Quick Check. Product requirements remain in `docs/` and `AGENTS.md`.
 
 ## Run locally
 
@@ -32,7 +32,7 @@ npm start
 - `/dashboard`: recommended topic and illustrative mastery
 - `/learn`: Biology learning path with two supporting previews
 - `/learn/food-chains`: topic overview
-- `/learn/food-chains/lesson`: three learning steps, knowledge interaction, and final Quick Check
+- `/learn/food-chains/lesson`: three learning steps, knowledge interaction, Quick Check, and the local recovery journey
 - `/journal`: reflection empty state
 
 ## Structure
@@ -43,11 +43,15 @@ npm start
 - `src/content/biology.ts`: typed topic structure and one original demo lesson/question
 - `src/data/demo.ts`: centralized fictional learner and sample mastery
 - `src/types/learning.ts`: MVP learning domain
+- `src/types/coaching.ts`: small structured coaching service contract
+- `src/content/food-chains-coaching.ts`: prewritten coaching and transfer question with demo source metadata
+- `src/lib/coaching.ts`: local coaching provider
+- `src/components/recovery-journey.tsx`: focused, in-memory recovery interaction
 - `src/app/globals.css`: Tailwind v4 theme tokens and accessibility defaults
 - `components.json`: shadcn/ui configuration for adding future primitives
 
 Pages use server components; navigation, the error retry boundary, and the lesson interaction use client components. System fonts avoid external font requests. The seed lesson and question are demo content requiring review, not official JAMB material. Sample mastery does not predict exam performance.
 
-Lesson and assessment state stays local and resets on reload. Incorrect final answers end without revealing the answer. No authentication, AI coaching, reasoning input, reflection writing, persistence, mastery calculations, or offline caching is present. Routes need connectivity to load; the preview does not claim offline availability or save learner work.
+Lesson and assessment state stays local and resets on reload. Incorrect final answers lead to reasoning without revealing the answer. Prewritten coaching comes through a small CoachingService interface; no AI or external API is used. Reasoning and reflection stay in memory. Activity-level feedback moves Developing to Understanding after a correct transfer response and a non-empty reflection. After three unsuccessful transfer attempts, an explanation allows progression while feedback remains Developing. No authentication, persistent mastery, persistence, or offline caching is present. Routes need connectivity to load; the preview does not claim offline availability or save learner work.
 
-Browser tests use Playwright. Run `npx playwright install chromium` once, then `npm test`. They cover the learning path, both assessment outcomes, retry/reset, keyboard answers, and 360/430px layouts.
+Browser tests use Playwright. Run `npx playwright install chromium` once, then `npm test`. They cover the learning path, both assessment outcomes, reasoning, coaching, guided discovery, transfer retries, bounded explanations, reflection, mastery feedback, reload reset, keyboard answers, and 360/430px layouts. The tests build and serve an isolated production app on port 3100.

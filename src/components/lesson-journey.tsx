@@ -1,21 +1,13 @@
-﻿"use client";
+"use client";
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { FoodChain } from "@/components/food-chain";
 import { ProgressBar } from "@/components/progress-bar";
-import type { AnswerOption, Lesson, Question } from "@/types/learning";
-
-function AnswerChoices({ options, selected, onSelect, disabled = false, name }: {
-  options: AnswerOption[]; selected: string | null; onSelect: (id: string) => void; disabled?: boolean; name: string;
-}) {
-  return <div className="space-y-2">{options.map((option, index) => <label key={option.id} className={`flex min-h-12 cursor-pointer items-center gap-3 rounded-2xl border p-3 text-sm ${selected === option.id ? "border-primary bg-secondary font-semibold" : "border-border bg-card"} ${disabled ? "cursor-default" : "hover:bg-secondary"}`}>
-    <input className="size-5 shrink-0 accent-primary" type="radio" name={name} value={option.id} checked={selected === option.id} disabled={disabled} onChange={() => onSelect(option.id)} />
-    <span>{name === "assessment" && `${String.fromCharCode(65 + index)}. `}{option.text}</span>
-    {selected === option.id && <span className="ml-auto text-xs text-primary">Selected</span>}
-  </label>)}</div>;
-}
+import { AnswerChoices } from "@/components/answer-choices";
+import { RecoveryJourney } from "@/components/recovery-journey";
+import type { Lesson, Question } from "@/types/learning";
 
 export function LessonJourney({ lesson, question }: { lesson: Lesson; question: Question }) {
   const [position, setPosition] = useState(0);
@@ -47,6 +39,10 @@ export function LessonJourney({ lesson, question }: { lesson: Lesson; question: 
     setSubmitted(false);
   }
 
+  if (submitted && !correct && selectedAnswer) {
+    return <RecoveryJourney lesson={lesson} question={question} selectedAnswerId={selectedAnswer} />;
+  }
+
   return <div className="mx-auto max-w-xl space-y-5">
     <Link href="/learn/food-chains" className="inline-flex min-h-12 items-center text-sm font-semibold text-primary">← Topic overview</Link>
     <p className="eyebrow">Food Chains & Energy Flow</p>
@@ -55,7 +51,7 @@ export function LessonJourney({ lesson, question }: { lesson: Lesson; question: 
       <header className="space-y-2"><p className="text-xs text-muted-foreground">Demo · {question.label}</p><h1 ref={headingRef} tabIndex={-1} className="text-3xl font-bold tracking-tight">{submitted ? (correct ? "That’s right!" : "Not quite — let’s look at your thinking.") : "Quick Check"}</h1></header>
       {submitted ? <section aria-label="Your result" className="space-y-5">
         <div role="status" className="rounded-2xl bg-secondary p-5 text-sm leading-6">
-          {correct ? question.explanation : "Next, Leebs will help you work through why you chose that answer. Guided coaching is coming in the next phase."}
+          {question.explanation}
         </div>
         <p className="text-sm text-muted-foreground">This is the end of today’s demo activity. Your sample mastery stays the same.</p>
         <Button asChild className="w-full"><Link href="/dashboard">Back to your journey</Link></Button>

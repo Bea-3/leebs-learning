@@ -1,4 +1,4 @@
-﻿import { expect, test, type Page } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
 
 async function learn(page: Page) {
   await page.goto("/dashboard");
@@ -42,14 +42,14 @@ async function learn(page: Page) {
   await expect(page.getByRole("button", { name: "Check Answer" })).toBeDisabled();
 }
 
-test("golden path supports incorrect endpoint, restart and correct feedback", async ({ page }) => {
+test("Quick Check preserves withheld answer, reload reset and direct correct feedback", async ({ page }) => {
   await learn(page);
   await page.getByRole("radio", { name: "B. Frog" }).check();
   await page.getByRole("button", { name: "Check Answer" }).click();
-  await expect(page.getByRole("heading", { name: /Not quite/ })).toBeFocused();
-  await expect(page.getByRole("region", { name: "Your result" })).toContainText("Next, Leebs will help you work through why");
+  await expect(page.getByRole("heading", { name: "Why did you choose that?" })).toBeFocused();
+  await expect(page.getByRole("status")).toContainText("Not quite");
   await expect(page.getByRole("main")).not.toContainText(/grasshopper|feeds directly|correct answer/i);
-  await page.getByRole("button", { name: "Retry lesson" }).click();
+  await page.reload();
   await expect(page.getByRole("radio", { name: "Sun", exact: true })).not.toBeChecked();
   await page.getByRole("radio", { name: "Sun", exact: true }).check();
   await page.getByRole("button", { name: "Check answer", exact: true }).click();
@@ -118,4 +118,3 @@ for (const width of [360, 430, 1024]) {
     await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
   });
 }
-
