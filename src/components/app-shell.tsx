@@ -15,16 +15,13 @@ export function AppShell({ children }: { children: React.ReactNode }) {
         <Link href="/dashboard" aria-label="Leebs home"><Brand /></Link>
         <span
           className="flex size-10 items-center justify-center rounded-full border border-border bg-accent text-sm font-bold text-accent-foreground"
-          aria-label={`${demoLearner.name}, demo learner`}
+          aria-label={demoLearner.name}
         >
           {demoLearner.name[0]}
         </span>
       </header>
       <main id="main-content" className="space-y-7">
         {children}
-        {!isActiveLesson && <p className="pt-2 text-center text-xs leading-5 text-muted-foreground">
-          Demo preview · Sample progress · No data is saved yet
-        </p>}
       </main>
       {!isActiveLesson && <BottomNavigation />}
     </div>

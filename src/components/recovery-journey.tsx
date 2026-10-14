@@ -9,6 +9,7 @@ import { ProgressBar } from "@/components/progress-bar";
 import { foodChainsCoaching as content, transferQuestion } from "@/content/food-chains-coaching";
 import { localCoachingService } from "@/lib/coaching";
 import { apiCoachingService } from "@/lib/api-coaching";
+import { saveFoodChainsResult } from "@/lib/food-chains-progress";
 import type { CoachingResponse, CoachingService } from "@/types/coaching";
 import type { Lesson, Question } from "@/types/learning";
 
@@ -38,6 +39,7 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
   const [transferDone, setTransferDone] = useState(false);
   const [assistedTransfer, setAssistedTransfer] = useState(false);
   const [reflection, setReflection] = useState("");
+  const [saved, setSaved] = useState(true);
   const headingRef = useRef<HTMLHeadingElement>(null);
   const requestInFlight = useRef(false);
 
@@ -125,7 +127,7 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
       <p className="text-xs leading-5 text-muted-foreground">{prompt.source === "ai" ? "AI Coach" : "Guided practice · Prewritten prompts, not AI analysis"}</p>
       <p className="text-sm leading-6">{prompt.acknowledgement}</p>
       {prompt.guidance && <p className="text-sm leading-6">{prompt.guidance}</p>}
-      {prompt.exampleText && <p className="text-sm leading-6 text-muted-foreground">{prompt.exampleText}</p>}
+      {prompt.exampleText && prompt.exampleText.trim().toLowerCase() !== prompt.guidingQuestion.trim().toLowerCase() && <p className="text-sm leading-6 text-muted-foreground">{prompt.exampleText}</p>}
       <FoodChain organisms={prompt.example} />
       <fieldset className="space-y-3"><legend className="mb-3 text-base font-semibold">{prompt.guidingQuestion}</legend><AnswerChoices name="coaching" options={prompt.responseOptions} selected={coachAnswer} onSelect={setCoachAnswer} /></fieldset>
       <Button type="submit" className="w-full" disabled={!coachAnswer}>Check answer</Button>
@@ -145,7 +147,10 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
       <p role="status" aria-atomic="true" className="text-sm leading-6 text-primary">{transferFeedback}</p>
       <Button type="submit" className="w-full" disabled={!transferAnswer}>{transferDone ? "Continue" : "Check answer"}</Button>
     </form>}
-    {stage === "reflection" && <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); if (reflection.trim()) setStage("complete"); }}>
+    {stage === "reflection" && <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); if (reflection.trim()) {
+      setSaved(saveFoodChainsResult({ mastery: assistedTransfer ? "Developing" : "Understanding", evidence: assistedTransfer ? "assisted-transfer" : "transfer", reflection: reflection.trim() }));
+      setStage("complete");
+    } }}>
       <label htmlFor="reflection" className="block text-base font-semibold">{content.reflectionPrompt}</label>
       <textarea id="reflection" rows={3} maxLength={600} value={reflection} onChange={(event) => setReflection(event.target.value)} className="w-full rounded-2xl border border-border bg-card p-3 text-base leading-6" />
       <Button type="submit" className="w-full" disabled={!reflection.trim()}>Finish lesson</Button>
@@ -154,7 +159,7 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
       <h2 className="text-lg font-semibold">Food Chains</h2>
       <p className="rounded-2xl bg-secondary p-4 font-semibold">{assistedTransfer ? "Developing · Keep practising" : "Developing → Understanding"}</p>
       <p className="text-sm leading-6">{assistedTransfer ? content.assistedExplanation : prompt?.source === "ai" && prompt.reasoningType !== "misconception" ? content.completionAfterReview : content.completionExplanation}</p>
-      <p className="text-xs leading-5 text-muted-foreground">This activity’s feedback isn’t an exam prediction. Your dashboard progress is still sample data.</p>
+      {!saved && <p role="status" className="text-sm leading-6">You can continue, but this browser couldn’t save your result.</p>}
       <Button asChild className="w-full"><Link href="/dashboard">Back to learning</Link></Button>
     </section>}
   </div>;

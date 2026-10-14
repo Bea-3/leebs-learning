@@ -14,9 +14,9 @@ Restart `npm run dev` after changing environment variables. No key is required t
 4. Enter one reasoning input below and Continue. While the request runs, expect “Thinking about your explanation...” and disabled controls.
 5. A successful response is labelled **AI Coach** and reflects the reasoning. A missing key, failed request, timeout, or rejected response is labelled **Guided practice**, with prewritten prompts.
 6. Answer the approved maize/chicken question. Identify Grasshopper through guided discovery, then select Rat in the new Cassava chain.
-7. Enter a reflection, finish, and return to the dashboard. Mastery feedback is activity-level only; dashboard progress remains sample data.
+7. Enter a reflection, finish, and return to the dashboard. Mastery feedback is based on this activity; completed Food Chains progress and the reflection are saved locally and appear on the dashboard and Journal.
 
-Reload the lesson to test each input. Neither reasoning nor reflection is persisted.
+Reload the lesson to test each input. Active reasoning/coaching state resets on reload. Completed mastery and the final reflection are saved on this browser; learner reasoning is not persisted.
 
 | Input | What to look for in AI mode |
 | --- | --- |

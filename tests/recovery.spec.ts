@@ -36,7 +36,7 @@ async function reachTransfer(page: Page, coachingChoice = "Yes") {
   await expect(page.getByRole("button", { name: "Check answer", exact: true })).toBeDisabled();
 }
 
-for (const width of [360, 430]) {
+for (const width of [360, 430, 1024]) {
   test(`signature misconception-to-understanding journey at ${width}px`, async ({ page }) => {
     await page.setViewportSize({ width, height: 844 });
     await quickCheck(page);
@@ -69,6 +69,15 @@ for (const width of [360, 430]) {
     await page.getByRole("link", { name: "Back to learning" }).click();
     await expect(page).toHaveURL(/\/dashboard$/);
     await expect(page.getByRole("navigation", { name: "Main navigation" })).toBeVisible();
+    await expect(page.getByText("Understanding", { exact: true })).toBeVisible();
+    await expect(page.getByRole("link", { name: "Review Food Chains" })).toBeVisible();
+    await page.reload();
+    await expect(page.getByText("Understanding", { exact: true })).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath("dashboard.png"), fullPage: true });
+    await page.getByRole("link", { name: "Journal", exact: true }).click();
+    await expect(page.getByRole("article", { name: "Food Chains learning history" })).toContainText("An organism that eats a producer directly.");
+    await expect(page.getByText("Understanding", { exact: true })).toBeVisible();
+    await page.screenshot({ path: test.info().outputPath("journal.png"), fullPage: true });
   });
 }
 
@@ -120,4 +129,35 @@ test("arbitrary reasoning is accepted and bounded hints prevent a trapped learne
   await page.getByRole("button", { name: "Finish lesson" }).click();
   await expect(page.getByText("Developing · Keep practising", { exact: true })).toBeVisible();
   await expect(page.getByText("Developing → Understanding", { exact: true })).toHaveCount(0);
+});
+
+test("storage unavailable does not block fallback completion or the dashboard payoff", async ({ page }) => {
+  await page.addInitScript(() => {
+    Storage.prototype.getItem = () => { throw new Error("Storage unavailable"); };
+    Storage.prototype.setItem = () => { throw new Error("Storage unavailable"); };
+  });
+  await page.route("**/api/coach", (route) => route.abort("internetdisconnected"));
+  await quickCheck(page);
+  await page.getByRole("checkbox", { name: "I’m not sure" }).check();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await expect(page.getByText("Guided practice · Prewritten prompts, not AI analysis")).toBeVisible();
+  await reachTransfer(page);
+  await answer(page, "B. Rat");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByLabel("In your own words, a primary consumer is...").fill("It eats the producer directly.");
+  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await expect(page.getByText("Developing → Understanding", { exact: true })).toBeVisible();
+  await expect(page.getByRole("status")).toContainText("couldn’t save your result");
+  await page.getByRole("link", { name: "Back to learning" }).click();
+  await expect(page.getByText("Understanding", { exact: true })).toBeVisible();
+});
+
+test("corrupt saved progress is ignored without blocking the lesson", async ({ page }) => {
+  await page.addInitScript(() => localStorage.setItem("leebs.food-chains.v1", "{broken json"));
+  await page.goto("/dashboard");
+  await expect(page.getByText("Needs Practice", { exact: true })).toBeVisible();
+  await expect(page.getByRole("link", { name: "Continue Learning" })).toBeVisible();
+  await page.getByRole("link", { name: "Continue Learning" }).click();
+  await page.getByRole("link", { name: "Start lesson" }).click();
+  await expect(page.getByRole("heading", { name: "Where energy begins" })).toBeVisible();
 });

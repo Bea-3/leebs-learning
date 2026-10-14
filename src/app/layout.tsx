@@ -3,7 +3,7 @@ import "./globals.css";
 
 export const metadata: Metadata = {
   title: { default: "Leebs — Make it make sense", template: "%s | Leebs" },
-  description: "Small steps. Deeper understanding. Explore the Leebs JAMB Biology demo.",
+  description: "Small steps. Deeper understanding. Make JAMB Biology concepts clearer with Leebs.",
 };
 export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#faf8f2", viewportFit: "cover" };
 

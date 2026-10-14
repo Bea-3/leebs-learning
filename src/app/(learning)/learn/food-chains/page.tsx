@@ -15,6 +15,6 @@ export default function TopicPage() {
       <ol className="space-y-3">{recommendedLesson.sections.map((step, index) => <li key={step.id} className="flex items-center gap-3"><span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-secondary text-sm font-semibold">{index + 1}</span><span className="text-sm font-medium">{step.heading}</span></li>)}</ol>
     </section>
     <PrimaryButton href="/learn/food-chains/lesson" className="w-full">Start lesson</PrimaryButton>
-    <p className="text-xs leading-5 text-muted-foreground">Original demo lesson with JAMB-style practice. Your work resets when you reload.</p>
+    <p className="text-xs leading-5 text-muted-foreground">JAMB-style practice. Work through the idea, then apply it to a new food chain.</p>
   </div>;
 }
