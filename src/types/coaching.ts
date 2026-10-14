@@ -9,10 +9,14 @@ export interface CoachingInput {
 }
 
 export interface CoachingResponse {
+  source: "ai" | "local";
+  reasoningType?: "misconception" | "partial_understanding" | "uncertain" | "unrelated" | "mostly_correct";
   acknowledgement: string;
-  misconception: string;
+  misconception: string | null;
+  guidance: string;
   guidingQuestion: string;
   example: string[];
+  exampleText: string | null;
   responseOptions: AnswerOption[];
   revealAnswer: boolean;
 }

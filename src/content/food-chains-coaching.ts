@@ -16,6 +16,7 @@ export const foodChainsCoaching = {
   discoveryHint: "Find the producer first. Follow the arrow to the organism that eats it directly.",
   reflectionPrompt: "In your own words, a primary consumer is...",
   completionExplanation: "You worked through a misconception and correctly applied the idea to a new food chain.",
+  completionAfterReview: "You worked through the idea and correctly applied it to a new food chain.",
   assistedExplanation: "You worked through the idea with an explanation. Try a new question next time to build your understanding.",
   maxAttempts: 3,
 };

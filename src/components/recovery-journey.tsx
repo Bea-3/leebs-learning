@@ -8,6 +8,7 @@ import { FoodChain } from "@/components/food-chain";
 import { ProgressBar } from "@/components/progress-bar";
 import { foodChainsCoaching as content, transferQuestion } from "@/content/food-chains-coaching";
 import { localCoachingService } from "@/lib/coaching";
+import { apiCoachingService } from "@/lib/api-coaching";
 import type { CoachingResponse, CoachingService } from "@/types/coaching";
 import type { Lesson, Question } from "@/types/learning";
 
@@ -18,7 +19,7 @@ const titles: Record<Stage, string> = {
   transfer: "Prove it", reflection: "Before you go...", complete: "Understanding grows",
 };
 
-export function RecoveryJourney({ lesson, question, selectedAnswerId, service = localCoachingService }: {
+export function RecoveryJourney({ lesson, question, selectedAnswerId, service = apiCoachingService }: {
   lesson: Lesson; question: Question; selectedAnswerId: string; service?: CoachingService;
 }) {
   const [stage, setStage] = useState<Stage>("reasoning");
@@ -26,7 +27,6 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
   const [unsure, setUnsure] = useState(false);
   const [prompt, setPrompt] = useState<CoachingResponse | null>(null);
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
   const [coachAnswer, setCoachAnswer] = useState<string | null>(null);
   const [discoveryAnswer, setDiscoveryAnswer] = useState<string | null>(null);
   const [discoveryAttempts, setDiscoveryAttempts] = useState(0);
@@ -39,6 +39,7 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
   const [assistedTransfer, setAssistedTransfer] = useState(false);
   const [reflection, setReflection] = useState("");
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const requestInFlight = useRef(false);
 
   useEffect(() => {
     headingRef.current?.focus();
@@ -46,9 +47,9 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
   }, [stage]);
 
   async function requestCoaching() {
-    if (loading || (!unsure && !reasoning.trim())) return;
+    if (requestInFlight.current || (!unsure && !reasoning.trim())) return;
+    requestInFlight.current = true;
     setLoading(true);
-    setError("");
     try {
       const response = await service.getPrompt({
         concept: lesson.objective, question, selectedAnswerId,
@@ -61,9 +62,15 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
       setPrompt(response);
       setStage("coach");
     } catch {
-      setError("Guided practice couldn’t load. Your thinking is still here. Try Continue again.");
+      const fallback = await localCoachingService.getPrompt({
+        concept: lesson.objective, question, selectedAnswerId,
+        reasoning: unsure ? "I’m not sure" : reasoning.trim(), attempt: 1,
+      });
+      setPrompt(fallback);
+      setStage("coach");
     } finally {
       setLoading(false);
+      requestInFlight.current = false;
     }
   }
 
@@ -111,12 +118,14 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
         <textarea id="reasoning" rows={3} maxLength={600} value={reasoning} disabled={loading} onChange={(event) => { setReasoning(event.target.value); setUnsure(false); }} className="w-full rounded-2xl border border-border bg-card p-3 text-base leading-6" />
       </div>
       <label className="flex min-h-12 items-center gap-3 rounded-2xl border border-border bg-card p-3 text-sm"><input type="checkbox" checked={unsure} disabled={loading} onChange={(event) => setUnsure(event.target.checked)} className="size-5 accent-primary" />I’m not sure</label>
-      {error && <p role="alert" className="text-sm leading-6">{error}</p>}
-      <Button type="submit" className="w-full" disabled={loading || (!unsure && !reasoning.trim())}>{loading ? "Preparing prompt…" : "Continue"}</Button>
+      {loading && <p role="status" aria-live="polite" className="flex items-center gap-2 text-sm text-primary"><span aria-hidden="true" className="size-3 rounded-full bg-primary" />Thinking about your explanation...</p>}
+      <Button type="submit" className="w-full" disabled={loading || (!unsure && !reasoning.trim())}>{loading ? "Thinking…" : "Continue"}</Button>
     </form>}
     {stage === "coach" && prompt && <form className="space-y-5" onSubmit={(event) => { event.preventDefault(); if (coachAnswer) setStage("discovery"); }}>
-      <p className="text-xs leading-5 text-muted-foreground">Guided practice · Prewritten prompts, not AI analysis</p>
+      <p className="text-xs leading-5 text-muted-foreground">{prompt.source === "ai" ? "AI Coach" : "Guided practice · Prewritten prompts, not AI analysis"}</p>
       <p className="text-sm leading-6">{prompt.acknowledgement}</p>
+      {prompt.guidance && <p className="text-sm leading-6">{prompt.guidance}</p>}
+      {prompt.exampleText && <p className="text-sm leading-6 text-muted-foreground">{prompt.exampleText}</p>}
       <FoodChain organisms={prompt.example} />
       <fieldset className="space-y-3"><legend className="mb-3 text-base font-semibold">{prompt.guidingQuestion}</legend><AnswerChoices name="coaching" options={prompt.responseOptions} selected={coachAnswer} onSelect={setCoachAnswer} /></fieldset>
       <Button type="submit" className="w-full" disabled={!coachAnswer}>Check answer</Button>
@@ -144,7 +153,7 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
     {stage === "complete" && <section aria-label="Lesson completed" className="space-y-5">
       <h2 className="text-lg font-semibold">Food Chains</h2>
       <p className="rounded-2xl bg-secondary p-4 font-semibold">{assistedTransfer ? "Developing · Keep practising" : "Developing → Understanding"}</p>
-      <p className="text-sm leading-6">{assistedTransfer ? content.assistedExplanation : content.completionExplanation}</p>
+      <p className="text-sm leading-6">{assistedTransfer ? content.assistedExplanation : prompt?.source === "ai" && prompt.reasoningType !== "misconception" ? content.completionAfterReview : content.completionExplanation}</p>
       <p className="text-xs leading-5 text-muted-foreground">This activity’s feedback isn’t an exam prediction. Your dashboard progress is still sample data.</p>
       <Button asChild className="w-full"><Link href="/dashboard">Back to learning</Link></Button>
     </section>}

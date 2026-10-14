@@ -9,10 +9,13 @@ export const localCoachingService: CoachingService = {
     }
     const frogReasoning = input.selectedAnswerId === "b" && /eats? (?:the grasshopper|another animal)|first animal/i.test(input.reasoning);
     return {
+      source: "local",
       acknowledgement: frogReasoning ? content.acknowledgement : content.fallbackAcknowledgement,
-      misconception: content.misconception,
+      misconception: frogReasoning ? content.misconception : null,
+      guidance: "",
       guidingQuestion: content.guidingQuestion,
       example: content.example,
+      exampleText: null,
       responseOptions: content.responseOptions,
       revealAnswer: false,
     };

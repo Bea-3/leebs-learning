@@ -1,6 +1,6 @@
 # Leebs
 
-Mobile-first JAMB Biology invention-sprint MVP. Phase 3 adds reasoning, local guided coaching, a transfer question, reflection, and activity-level mastery feedback after an incorrect Food Chains Quick Check. Product requirements remain in `docs/` and `AGENTS.md`.
+Mobile-first JAMB Biology invention-sprint MVP. Phase 4 adds an optional server-side OpenAI Coach to the Food Chains recovery journey, with prewritten coaching as a fallback. Product requirements remain in `docs/` and `AGENTS.md`.
 
 ## Run locally
 
@@ -11,7 +11,7 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. No API keys or environment configuration are required for this demo. `.env.example` is preserved for future server-side integration; never expose secrets through `NEXT_PUBLIC_` variables.
+Open http://localhost:3000. No API key is required for Guided practice. Set `OPENAI_API_KEY` in ignored `.env.local` for AI coaching; optionally set `OPENAI_MODEL` (default: `gpt-5.4-mini`). Restart the server after environment changes. Never expose secrets through `NEXT_PUBLIC_` variables. See [manual AI testing](docs/AI-COACH-TESTING.md).
 
 ## Checks
 
@@ -34,6 +34,7 @@ npm start
 - `/learn/food-chains`: topic overview
 - `/learn/food-chains/lesson`: three learning steps, knowledge interaction, Quick Check, and the local recovery journey
 - `/journal`: reflection empty state
+- `POST /api/coach`: validated server-side Responses API coaching with deterministic fallback
 
 ## Structure
 
@@ -46,12 +47,15 @@ npm start
 - `src/types/coaching.ts`: small structured coaching service contract
 - `src/content/food-chains-coaching.ts`: prewritten coaching and transfer question with demo source metadata
 - `src/lib/coaching.ts`: local coaching provider
+- `src/lib/api-coaching.ts`: browser service with bounded local fallback
+- `src/lib/coach-handler.server.ts`: server-only SDK integration and output guardrails
+- `src/lib/coaching-schema.ts`: Zod request and response schemas
 - `src/components/recovery-journey.tsx`: focused, in-memory recovery interaction
 - `src/app/globals.css`: Tailwind v4 theme tokens and accessibility defaults
 - `components.json`: shadcn/ui configuration for adding future primitives
 
 Pages use server components; navigation, the error retry boundary, and the lesson interaction use client components. System fonts avoid external font requests. The seed lesson and question are demo content requiring review, not official JAMB material. Sample mastery does not predict exam performance.
 
-Lesson and assessment state stays local and resets on reload. Incorrect final answers lead to reasoning without revealing the answer. Prewritten coaching comes through a small CoachingService interface; no AI or external API is used. Reasoning and reflection stay in memory. Activity-level feedback moves Developing to Understanding after a correct transfer response and a non-empty reflection. After three unsuccessful transfer attempts, an explanation allows progression while feedback remains Developing. No authentication, persistent mastery, persistence, or offline caching is present. Routes need connectivity to load; the preview does not claim offline availability or save learner work.
+Lesson and assessment state stays local and resets on reload. Incorrect final answers lead to reasoning without revealing the answer. The CoachingService calls a validated server endpoint; OpenAI personalizes acknowledgement/guidance and selects an approved guiding question. Missing key, timeout, invalid response, or unavailable network uses local prewritten Guided practice. The server requests `store: false` and does not log reasoning. Reasoning and reflection stay in memory. Activity-level feedback moves Developing to Understanding after a correct transfer response and a non-empty reflection. After three unsuccessful transfer attempts, an explanation allows progression while feedback remains Developing. No authentication, persistent mastery, persistence, or offline caching is present. Routes need connectivity to load; the preview does not claim offline availability or save learner work.
 
-Browser tests use Playwright. Run `npx playwright install chromium` once, then `npm test`. They cover the learning path, both assessment outcomes, reasoning, coaching, guided discovery, transfer retries, bounded explanations, reflection, mastery feedback, reload reset, keyboard answers, and 360/430px layouts. The tests build and serve an isolated production app on port 3100.
+Browser tests use Playwright. Run `npx playwright install chromium` once, then `npm test`. They cover the learning path, both assessment outcomes, reasoning, coaching, guided discovery, transfer retries, bounded explanations, reflection, mastery feedback, reload reset, keyboard answers, and 360/430px layouts. The tests build and serve an isolated production app on port 3100, with the API key cleared. SDK responses and browser AI calls are mocked; automated tests never make paid calls.
