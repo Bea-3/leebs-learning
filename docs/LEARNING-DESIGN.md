@@ -118,3 +118,32 @@ to reconsider."
 
 The learner should do meaningful cognitive work before the system
 does it for them.
+
+## Micro-Learning Content Constraints
+
+Leebs should not feel like a digital textbook.
+
+Present one primary idea at a time.
+
+For normal learning steps:
+
+- target approximately 40–80 words
+- use short paragraphs
+- prefer examples and simple diagrams where they reduce explanation
+- avoid unnecessary introductory text
+- progressively reveal concepts rather than presenting long lesson pages
+- provide one obvious primary action per screen
+
+The learning rhythm should generally be:
+
+Idea → Example → Think → Act → Continue
+
+AI coaching should also be concise.
+
+Prefer 2–4 short sentences or one focused question at a time.
+
+Clarity is more important than completeness on any individual screen.
+Complex concepts should be broken into multiple learning steps rather
+than explained in one large block.
+
+Concise must not become childish. The primary learner is a teenager.
