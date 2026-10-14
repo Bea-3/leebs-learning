@@ -1,6 +1,6 @@
 # Leebs
 
-Mobile-first JAMB Biology invention-sprint MVP. Phase 1 provides the application foundation and demo screens; the full learning workflow is not implemented yet. Product requirements remain in `docs/` and `AGENTS.md`.
+Mobile-first JAMB Biology invention-sprint MVP. Phase 2 adds a three-step Food Chains micro-lesson and a final Quick Check to the demo foundation. Product requirements remain in `docs/` and `AGENTS.md`.
 
 ## Run locally
 
@@ -11,13 +11,14 @@ npm install
 npm run dev
 ```
 
-Open http://localhost:3000. No API keys or environment configuration are required for Phase 1. `.env.example` is preserved for future server-side integration; never expose secrets through `NEXT_PUBLIC_` variables.
+Open http://localhost:3000. No API keys or environment configuration are required for this demo. `.env.example` is preserved for future server-side integration; never expose secrets through `NEXT_PUBLIC_` variables.
 
 ## Checks
 
 ```sh
 npm run lint
 npm run typecheck
+npm test
 npm run build
 npm start
 ```
@@ -29,7 +30,9 @@ npm start
 - `/`: demo entry
 - `/onboarding`: fictional learner introduction
 - `/dashboard`: recommended topic and illustrative mastery
-- `/learn`: three Biology topic previews
+- `/learn`: Biology learning path with two supporting previews
+- `/learn/food-chains`: topic overview
+- `/learn/food-chains/lesson`: three learning steps, knowledge interaction, and final Quick Check
 - `/journal`: reflection empty state
 
 ## Structure
@@ -43,6 +46,8 @@ npm start
 - `src/app/globals.css`: Tailwind v4 theme tokens and accessibility defaults
 - `components.json`: shadcn/ui configuration for adding future primitives
 
-All screens use server components except active navigation and the error retry boundary. System fonts avoid external font requests. The seed lesson and question are demo content requiring review, not official JAMB material. Sample mastery does not predict exam performance.
+Pages use server components; navigation, the error retry boundary, and the lesson interaction use client components. System fonts avoid external font requests. The seed lesson and question are demo content requiring review, not official JAMB material. Sample mastery does not predict exam performance.
 
-No authentication, assessment workflow, AI coaching, persistence, mastery calculations, or offline caching is present. Routes need connectivity to load; the preview does not claim offline availability or save learner work.
+Lesson and assessment state stays local and resets on reload. Incorrect final answers end without revealing the answer. No authentication, AI coaching, reasoning input, reflection writing, persistence, mastery calculations, or offline caching is present. Routes need connectivity to load; the preview does not claim offline availability or save learner work.
+
+Browser tests use Playwright. Run `npx playwright install chromium` once, then `npm test`. They cover the learning path, both assessment outcomes, retry/reset, keyboard answers, and 360/430px layouts.

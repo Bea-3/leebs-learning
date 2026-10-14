@@ -1,4 +1,4 @@
-/** Phase 1 domain: structured content, with no persistence or scoring engine. */
+/** Structured learning content, separate from learner interaction state. */
 export interface SourceReference {
   title: string;
   url?: string;
@@ -37,6 +37,16 @@ export interface ContentSection {
   kind: "explanation" | "example" | "thinking-prompt";
   heading: string;
   body: string;
+  example?: string;
+  chain?: string[];
+  think?: string;
+  knowledgeCheck?: {
+    prompt: string;
+    options: AnswerOption[];
+    correctAnswerId: string;
+    correctFeedback: string;
+    retryFeedback: string;
+  };
 }
 
 export interface Lesson {
@@ -62,6 +72,7 @@ export interface Question {
   kind: "practice-demo" | "practice";
   label: "JAMB-style practice question";
   prompt: string;
+  chain?: string[];
   options: AnswerOption[];
   correctAnswerId: AnswerOption["id"];
   explanation: string;
