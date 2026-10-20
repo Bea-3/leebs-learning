@@ -191,6 +191,9 @@ test("a later assisted attempt saves its reflection without replacing best maste
   await page.getByRole("link", { name: "Back to learning" }).click();
   await expect(page.getByText("Understanding", { exact: true })).toBeVisible();
   await page.getByRole("link", { name: "Journal", exact: true }).click();
+  // Next.js client navigation can still be pending after the link click returns.
+  await expect(page).toHaveURL(/\/journal$/);
+  await expect(page.getByText(latestReflection, { exact: true })).toBeVisible();
   await page.reload();
   await expect(page.getByText(latestReflection, { exact: true })).toBeVisible();
   await expect(page.getByText("My first reflection.", { exact: true })).toHaveCount(0);
