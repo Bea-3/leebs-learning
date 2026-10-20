@@ -1,4 +1,4 @@
-﻿# Leebs
+# Leebs
 
 **A mobile-first learning companion for Nigerian students preparing for JAMB, WAEC and NECO.**
 
@@ -12,7 +12,7 @@ The current invention-sprint MVP demonstrates this through a JAMB-style Biology 
 
 A student can sit through a lesson and still leave with a misunderstanding.
 
-For many Nigerian students, especially those from low-income households attending public schools, getting individual learning support can be difficult. Teachers may be responsible for classrooms of more than 30 students, while limited resources and heavy workloads make one-to-one attention difficult.
+For many Nigerian students, especially those from low-income households attending public schools, access to individual learning support can be difficult. Teachers may be responsible for classrooms of more than 30 students, while limited resources and heavy workloads make one-to-one attention difficult.
 
 Private lessons can provide extra support, but they are not affordable for every family.
 
@@ -53,17 +53,12 @@ It currently focuses on:
 The current experience includes:
 
 - Mobile-first micro-learning
-- Interactive knowledge checks
-- JAMB-style practice questions
-- “Explain your thinking” after an incorrect answer
+- JAMB-style practice and knowledge checks
 - Reasoning-aware AI coaching
 - Guided practice when AI is unavailable
-- Transfer questions to prove understanding
-- End-of-lesson reflection
-- Mastery states such as **Developing** and **Understanding**
-- Local progress and reflection storage
-- A simple Learning Journal
-- Accessible keyboard and mobile interactions
+- Transfer questions to demonstrate understanding
+- Reflection and concept mastery feedback
+- Local progress and a simple Learning Journal
 
 Cell Structure and Ecology are currently shown as previews.
 
@@ -105,7 +100,7 @@ For the golden path:
 
 1. Complete the three Food Chains learning steps.
 2. At the Quick Check, choose **Frog**.
-3. Explain: _“I thought a primary consumer must eat another animal.”_
+3. Explain: *“I thought a primary consumer must eat another animal.”*
 4. Continue through the AI Coach or Guided practice.
 5. Work out which organism eats the producer directly.
 6. Complete the new `Cassava → Rat → Snake → Hawk` question.
@@ -163,9 +158,9 @@ Codex helped with:
 - automated browser tests
 - debugging live API issues
 
-Product direction, learning design and feature decisions were defined separately, with each major phase manually tested from the learner's perspective before moving forward.
+Product direction, learning design and feature decisions remained human-led, with each major phase manually tested from the learner's perspective before moving forward.
 
-Codex functioned as a **development accelerator and pair-programming tool**, rather than making the product and learning-design decisions.
+Codex functioned as a **development accelerator and engineering collaborator**. Generated changes were validated through manual testing, automated tests and an independent engineering review.
 
 ## Designed for the Nigerian Learning Context
 
@@ -186,10 +181,9 @@ It is to give learners another space to **ask, attempt, make mistakes, reflect a
 
 Leebs is currently an MVP. Future development may include:
 
-- More Biology topics
-- More school subjects
+- More Biology topics and school subjects
 - JAMB, WAEC and NECO learning paths
-- Properly sourced real examination questions
+- Properly sourced or licensed JAMB, WAEC and NECO questions, with source and year metadata where permitted
 - Full offline lessons and assessments
 - Low-data mode
 - Learner accounts and progress sync
@@ -203,12 +197,17 @@ The longer-term goal is to make personalised learning support more accessible to
 
 ## Validation
 
+Leebs has an automated test suite covering the golden learning path, AI fallback, request validation, answer-leak guards, keyboard use, responsive layouts, local progress, reflection persistence and storage failure.
+
+The current suite contains **75 automated tests** and runs through GitHub Actions alongside TypeScript and lint checks.
+
+Run locally with:
+
 ```sh
 npm run typecheck
 npm run lint
 npm test
 npm run build
-npm start
 ```
 
 Install the Playwright browser once with:
@@ -217,23 +216,18 @@ Install the Playwright browser once with:
 npx playwright install chromium
 ```
 
-Automated AI tests use mocks and do not make paid OpenAI API calls.
-
-The test suite covers the golden learning path, direct correct answers, AI fallback, request validation, answer-leak guards, keyboard use, responsive layouts, local progress, reflection history and storage failure.
+AI tests use mocked responses and do not make paid OpenAI API calls.
 
 ## Current Limitations
 
-This is an invention-sprint MVP, not a production learning platform.
+Leebs is an invention-sprint MVP, not yet a production learning platform.
 
-Currently:
-
-- only the completed Food Chains result is persisted
-- active lesson and coaching state reset on reload
-- progress is stored on the current browser/device
-- there is no account or cross-device sync
-- there is no full offline/PWA support
-- AI coaching may be unavailable and is not treated as infallible
-- mastery does not predict JAMB or other exam performance
+- Progress is currently stored on the learner's browser/device.
+- Active lesson and coaching state reset on reload.
+- There is no account or cross-device sync yet.
+- Graceful AI fallback is supported, but full offline/PWA use is not.
+- AI coaching is not treated as infallible.
+- Mastery describes evidence from the learning activity; it does not predict exam performance.
 
 ## Project Structure
 
