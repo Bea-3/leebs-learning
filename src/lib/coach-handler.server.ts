@@ -9,6 +9,7 @@ import type { CoachingResponse } from "@/types/coaching";
 
 export const DEFAULT_COACH_MODEL = "gpt-5.4-mini";
 export const COACH_TIMEOUT_MS = 12_000;
+export const COACH_MAX_BODY_BYTES = 4096;
 
 export const coachingRules = `You are Leebs' concise Socratic Biology coach for a teenager.
 Use only the trusted context in the developer message. This is demo/JAMB-style practice, never official JAMB material.
@@ -37,6 +38,7 @@ function coachingConstraintReason(output: AiCoachOutput, answerText: string): st
   // matching curriculum words inside longer organism names.
   const answerPattern = new RegExp(`(^|[^\\p{L}\\p{N}])${escapedAnswer}(?:s)?(?=$|[^\\p{L}\\p{N}])`, "u");
   if (answerPattern.test(normalized) || /\b(?:option|answer|choice)\s*[cＣ]\b|\b[cＣ][.)]\s*(?:is|the)\b/i.test(normalized)) return "answer_leak_detected";
+  if (/\b(?:choose|select|pick)\s+c(?=\s|[.!?,;:]|$)/i.test(normalized)) return "answer_leak_detected";
   // A prompt to find what eats grass is cognitive work, not answer delivery.
   // Keep rejecting assertions that give the answer by that relationship.
   if (/\b(?:it|(?:the\s+)?(?:correct\s+)?answer|(?:the\s+)?primary consumer)\s+(?:is|would be)\b[^.!?]{0,100}\b(?:eats?|feeds? on)\s+(?:the\s+)?grass\b|\b(?:eats?|feeds? on)\s+(?:the\s+)?grass\b[^.!?]{0,60}\bis\s+the\s+primary consumer\b/i.test(normalized)) return "grass_relationship_detected";
@@ -66,10 +68,30 @@ function json(data: unknown, status = 200) {
 export async function handleCoachRequest(request: Request, options: HandlerOptions = {}): Promise<Response> {
   let raw: unknown;
   try {
-    // Bound the body even before Zod validation. Only the five request fields
-    // are accepted; trusted facts and extra profile data are rejected.
-    const body = await request.text();
-    if (body.length > 4096) return json({ error: "Invalid coaching request." }, 400);
+    // Count actual bytes, independent of Content-Length. Decode only bounded data;
+    // streaming decoding also handles UTF-8 characters split across chunks.
+    const reader = request.body?.getReader();
+    const decoder = new TextDecoder("utf-8", { fatal: true });
+    let bytes = 0;
+    let body = "";
+    if (reader) {
+      try {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          bytes += value.byteLength;
+          if (bytes > COACH_MAX_BODY_BYTES) {
+            // Do not wait for the sender to finish or for cancellation to settle.
+            void reader.cancel().catch(() => {});
+            return json({ error: "Coaching request is too large." }, 413);
+          }
+          body += decoder.decode(value, { stream: true });
+        }
+        body += decoder.decode();
+      } finally {
+        reader.releaseLock();
+      }
+    }
     raw = JSON.parse(body);
   } catch {
     return json({ error: "Invalid coaching request." }, 400);

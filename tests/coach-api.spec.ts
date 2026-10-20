@@ -1,6 +1,6 @@
 ﻿import OpenAI from "openai";
 import { expect, test } from "@playwright/test";
-import { handleCoachRequest, DEFAULT_COACH_MODEL } from "@/lib/coach-handler.server";
+import { handleCoachRequest, DEFAULT_COACH_MODEL, COACH_MAX_BODY_BYTES } from "@/lib/coach-handler.server";
 import { createApiCoachingService } from "@/lib/api-coaching";
 import { recommendedLesson, recommendedQuestion } from "@/content/biology";
 import { coachingResponseSchema } from "@/lib/coaching-schema";
@@ -72,9 +72,79 @@ for (const [label, changes] of [
 }
 
 test("rejects malformed JSON and oversized bodies", async () => {
-  for (const body of ["not json", "x".repeat(4097)]) {
-    expect((await handleCoachRequest(new Request("http://localhost/api/coach", { method: "POST", body }), { apiKey: "" })).status).toBe(400);
+  for (const [body, status] of [["not json", 400], ["x".repeat(4097), 413]] as const) {
+    expect((await handleCoachRequest(new Request("http://localhost/api/coach", { method: "POST", body }), { apiKey: "" })).status).toBe(status);
   }
+});
+
+function streamingRequest(chunks: Uint8Array[], contentLength?: string, onCancel?: () => void) {
+  let next = 0;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      if (next < chunks.length) controller.enqueue(chunks[next++]);
+      else controller.close();
+    },
+    cancel: onCancel,
+  }, { highWaterMark: 0 });
+  return new Request("http://localhost/api/coach", {
+    method: "POST", body, duplex: "half",
+    headers: contentLength === undefined ? {} : { "Content-Length": contentLength },
+  } as RequestInit & { duplex: "half" });
+}
+
+for (const contentLength of [undefined, "1", "999999"]) {
+  test(`byte limit ignores missing or misleading Content-Length ${contentLength}`, async () => {
+    const bytes = new TextEncoder().encode(JSON.stringify(validRequest).padEnd(COACH_MAX_BODY_BYTES));
+    expect((await handleCoachRequest(streamingRequest([bytes], contentLength), { apiKey: "" })).status).toBe(200);
+    let called = false;
+    const response = await handleCoachRequest(streamingRequest([bytes, new Uint8Array([32])], contentLength), {
+      apiKey: "test-key", createClient: () => { called = true; throw new Error("Must not call OpenAI"); },
+    });
+    expect(response.status).toBe(413);
+    expect(response.headers.get("cache-control")).toBe("no-store");
+    expect(called).toBe(false);
+  });
+}
+
+test("oversized stream is cancelled before reading its remaining chunks", async () => {
+  let reads = 0;
+  let cancelled = false;
+  const body = new ReadableStream<Uint8Array>({
+    pull(controller) {
+      reads++;
+      controller.enqueue(new Uint8Array(2049));
+    },
+    cancel() { cancelled = true; },
+  }, { highWaterMark: 0 });
+  const input = new Request("http://localhost/api/coach", { method: "POST", body, duplex: "half" } as RequestInit & { duplex: "half" });
+  expect((await handleCoachRequest(input, { apiKey: "" })).status).toBe(413);
+  expect(reads).toBe(2);
+  expect(cancelled).toBe(true);
+});
+
+test("multibyte UTF-8 counts bytes rather than characters", async () => {
+  const body = JSON.stringify({ ...validRequest, reasoning: "界".repeat(1400) });
+  expect(body.length).toBeLessThan(COACH_MAX_BODY_BYTES);
+  expect(new TextEncoder().encode(body).byteLength).toBeGreaterThan(COACH_MAX_BODY_BYTES);
+  expect((await handleCoachRequest(streamingRequest([new TextEncoder().encode(body)]), { apiKey: "" })).status).toBe(413);
+});
+
+test("chunked UTF-8 preserves reasoning when code points split between chunks", async () => {
+  const reasoning = "I’m unsure 🌱";
+  const bytes = new TextEncoder().encode(JSON.stringify({ ...validRequest, reasoning }));
+  let received: unknown;
+  const response = await handleCoachRequest(streamingRequest(Array.from(bytes, (byte) => new Uint8Array([byte]))), {
+    apiKey: "test-key", createClient: mockClient(goodOutput, (body) => { received = JSON.parse((body.input as { content: string }[])[1].content).reasoning; }),
+  });
+  expect((await response.json()).source).toBe("ai");
+  expect(received).toBe(reasoning);
+});
+
+test("invalid UTF-8 and interrupted bodies fail safely", async () => {
+  expect((await handleCoachRequest(streamingRequest([new Uint8Array([0xff])]), { apiKey: "" })).status).toBe(400);
+  const body = new ReadableStream<Uint8Array>({ start(controller) { controller.error(new Error("Disconnected")); } });
+  const input = new Request("http://localhost/api/coach", { method: "POST", body, duplex: "half" } as RequestInit & { duplex: "half" });
+  expect((await handleCoachRequest(input, { apiKey: "" })).status).toBe(400);
 });
 
 test("missing API key keeps deterministic coaching without constructing SDK", async () => {
@@ -218,3 +288,17 @@ test("learner reasoning and trusted context containing the answer are not scanne
   const response = await handleCoachRequest(request({ ...validRequest, reasoning: "I see grass and grasshopper in the chain, but I chose frog." }), { apiKey: "test-key", createClient: mockClient(goodOutput) });
   expect((await response.json()).source).toBe("ai");
 });
+
+for (const guidance of ["Choose C.", "Select C.", "Pick C.", "Choose Ｃ."]) {
+  test(`direct option instruction ${guidance} falls back`, async () => {
+    const response = await handleCoachRequest(request(), { apiKey: "test-key", createClient: mockClient({ ...goodOutput, guidance }) });
+    expect((await response.json()).source).toBe("local");
+  });
+}
+
+for (const guidance of ["Choose carefully by following the energy.", "Select a consumer by thinking about what it eats.", "Pick clues from the chain before deciding."]) {
+  test(`safe guidance remains AI: ${guidance}`, async () => {
+    const response = await handleCoachRequest(request(), { apiKey: "test-key", createClient: mockClient({ ...goodOutput, guidance }) });
+    expect((await response.json()).source).toBe("ai");
+  });
+}

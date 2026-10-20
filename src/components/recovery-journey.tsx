@@ -9,7 +9,7 @@ import { ProgressBar } from "@/components/progress-bar";
 import { foodChainsCoaching as content, transferQuestion } from "@/content/food-chains-coaching";
 import { localCoachingService } from "@/lib/coaching";
 import { apiCoachingService } from "@/lib/api-coaching";
-import { saveFoodChainsResult } from "@/lib/food-chains-progress";
+import { saveFoodChainsResult, useFoodChainsResult } from "@/lib/food-chains-progress";
 import type { CoachingResponse, CoachingService } from "@/types/coaching";
 import type { Lesson, Question } from "@/types/learning";
 
@@ -40,6 +40,7 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
   const [assistedTransfer, setAssistedTransfer] = useState(false);
   const [reflection, setReflection] = useState("");
   const [saved, setSaved] = useState(true);
+  const bestResult = useFoodChainsResult();
   const headingRef = useRef<HTMLHeadingElement>(null);
   const requestInFlight = useRef(false);
 
@@ -158,6 +159,7 @@ export function RecoveryJourney({ lesson, question, selectedAnswerId, service = 
     {stage === "complete" && <section aria-label="Lesson completed" className="space-y-5">
       <h2 className="text-lg font-semibold">Food Chains</h2>
       <p className="rounded-2xl bg-secondary p-4 font-semibold">{assistedTransfer ? "Developing · Keep practising" : "Developing → Understanding"}</p>
+      {assistedTransfer && bestResult?.mastery === "Understanding" && <p className="text-sm leading-6">This practice needed guidance. Your best demonstrated mastery remains Understanding.</p>}
       <p className="text-sm leading-6">{assistedTransfer ? content.assistedExplanation : prompt?.source === "ai" && prompt.reasoningType !== "misconception" ? content.completionAfterReview : content.completionExplanation}</p>
       {!saved && <p role="status" className="text-sm leading-6">You can continue, but this browser couldn’t save your result.</p>}
       <Button asChild className="w-full"><Link href="/dashboard">Back to learning</Link></Button>
