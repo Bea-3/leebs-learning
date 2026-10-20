@@ -161,3 +161,43 @@ test("corrupt saved progress is ignored without blocking the lesson", async ({ p
   await page.getByRole("link", { name: "Start lesson" }).click();
   await expect(page.getByRole("heading", { name: "Where energy begins" })).toBeVisible();
 });
+
+test("a later assisted attempt saves its reflection without replacing best mastery evidence", async ({ page }) => {
+  await quickCheck(page);
+  await page.getByRole("checkbox", { name: "I’m not sure" }).check();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await reachTransfer(page);
+  await answer(page, "B. Rat");
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await page.getByLabel("In your own words, a primary consumer is...").fill("My first reflection.");
+  await page.getByRole("button", { name: "Finish lesson" }).click();
+  const best = await page.evaluate(() => JSON.parse(localStorage.getItem("leebs.food-chains.v1")!));
+  expect(best.mastery).toBe("Understanding");
+  expect(best.evidence).toBe("transfer");
+
+  await quickCheck(page);
+  await page.getByRole("checkbox", { name: "I’m not sure" }).check();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  await reachTransfer(page);
+  await answer(page, "D. Hawk");
+  await page.getByRole("button", { name: "Check answer", exact: true }).click();
+  await page.getByRole("button", { name: "Check answer", exact: true }).click();
+  await page.getByRole("button", { name: "Continue", exact: true }).click();
+  const latestReflection = "I needed guidance this time. A primary consumer eats a producer.";
+  await page.getByLabel("In your own words, a primary consumer is...").fill(`  ${latestReflection}  `);
+  await page.getByRole("button", { name: "Finish lesson" }).click();
+  await expect(page.getByText("This practice needed guidance. Your best demonstrated mastery remains Understanding.")).toBeVisible();
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("leebs.food-chains.v1")!))).toEqual({ ...best, reflection: latestReflection });
+  await page.getByRole("link", { name: "Back to learning" }).click();
+  await expect(page.getByText("Understanding", { exact: true })).toBeVisible();
+  await page.getByRole("link", { name: "Journal", exact: true }).click();
+  await page.reload();
+  await expect(page.getByText(latestReflection, { exact: true })).toBeVisible();
+  await expect(page.getByText("My first reflection.", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Your latest reflection", { exact: true })).toBeVisible();
+  await expect(page.getByText("Understanding", { exact: true })).toBeVisible();
+
+  // A direct correct retry has no reflection and must not erase the latest one.
+  await quickCheck(page, "C. Grasshopper");
+  expect(await page.evaluate(() => JSON.parse(localStorage.getItem("leebs.food-chains.v1")!))).toEqual({ ...best, reflection: latestReflection });
+});
